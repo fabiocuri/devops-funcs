@@ -5,7 +5,6 @@ Author: Fabio Curi
 **Exercise 1**
 
 ```
-#!/bin/bash
 git clone git@gitlab.com:twn-devops-bootcamp/latest/03-git/git-exercises.git
 cd git-exercises
 
@@ -32,7 +31,6 @@ Add these:
 
 Run:
 ```
-#!/bin/bash
 git rm --cached .DS_Store
 
 git rm -r --cached .idea
@@ -43,4 +41,20 @@ git add .
 git commit -m "remove ignored files"
 git push
 
+```
+
+------------
+**Exercise 3**
+
+`git checkout -b feature/changes`
+
+Change version manually.
+Add image in HTML manually.
+
+```
+git diff
+git add .
+git commit -m "Upgrade logback library and add image url"
+
+git push
 ```
