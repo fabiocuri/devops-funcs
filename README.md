@@ -58,3 +58,62 @@ git commit -m "Upgrade logback library and add image url"
 
 git push
 ```
+
+------------
+**Exercise 4**
+
+`git checkout -b bugfix/changes`
+
+Change line manually to log.info("Java app started");
+
+```
+git diff
+git add .
+git commit -m "Fix spelling error"
+git push
+```
+
+------------
+**Exercise 5**
+
+```
+git checkout master
+git merge feature/changes 
+git push
+```
+
+------------
+**Exercise 6**
+
+`git checkout bugfix/changes`
+
+Change line manually to include new version.
+
+```
+git add .
+git commit -m "upgrade logger library version"
+git merge master
+git status
+git push
+```
+
+------------
+**Exercise 7**
+
+Change the typo manually.
+
+```
+git add .
+git commit -m "Fix spelling error"
+```
+
+Change the image URL manually.
+
+git add .
+git commit -m "Set image url"
+
+```
+git push
+git revert HEAD
+git push
+```
