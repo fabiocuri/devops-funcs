@@ -122,8 +122,6 @@ git push
 
 Change text manually.
 
-<li>Bruno - DevOps engineer</li>
-
 ```
 git add .
 git commit -m "Adjust employee role description"
@@ -132,3 +130,16 @@ git reset HEAD~1
 
 ------------
 **Exercise 9**
+
+```
+git checkout master
+git merge bugfix/changes
+```
+
+------------
+**Exercise 10**
+
+```
+git branch -D bugfix/changes
+git branch -D feature/changes
+```
