@@ -129,3 +129,6 @@ git add .
 git commit -m "Adjust employee role description"
 git reset HEAD~1
 ```
+
+------------
+**Exercise 9**
