@@ -109,11 +109,23 @@ git commit -m "Fix spelling error"
 
 Change the image URL manually.
 
+```
 git add .
 git commit -m "Set image url"
-
-```
 git push
 git revert HEAD
 git push
+```
+
+------------
+**Exercise 8**
+
+Change text manually.
+
+<li>Bruno - DevOps engineer</li>
+
+```
+git add .
+git commit -m "Adjust employee role description"
+git reset HEAD~1
 ```
