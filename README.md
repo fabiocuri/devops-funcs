@@ -2,7 +2,7 @@ This repo contains all the code for the exercises of the DevOps bootcamp.
 
 Author: Fabio Curi
 
-**Exercise 1**
+**Exercise 1** 
 
 Go to https://www.virtualbox.org/wiki/Downloads
 Install Windows version.
