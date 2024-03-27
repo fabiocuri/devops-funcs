@@ -2,198 +2,153 @@ This repo contains all the code for the exercises of the DevOps bootcamp.
 
 Author: Fabio Curi
 
-**Exercise 0**
+**Exercise 1**
 
 ```
-git clone https://gitlab.com/twn-devops-bootcamp/latest/07-docker/docker-exercises.git
-cd docker-exercises
+git clone https://gitlab.com/twn-devops-bootcamp/latest/08-jenkins/jenkins-exercises.git
+cd jenkins-exercises
 
 rm -rf .git
 git init 
 git add .
 git commit -m "initial commit"
 
-git remote add origin git@github.com:fabiocuri/07-docker.git
+git remote add origin git@github.com:fabiocuri/08-jenkins.git
 git push -u origin master
 
 ```
 
-------------
-**Exercise 1**
+Then create Dockerfile:
 
 ```
-sudo docker run -p 3306:3306 \
---name mysql \
--e MYSQL_ROOT_PASSWORD=rootpass \
--e MYSQL_DATABASE=team-member-projects \
--e MYSQL_USER=admin \
--e MYSQL_PASSWORD=adminpass \
--d mysql mysqld --default-authentication-plugin=mysql_native_password
+FROM node:20-alpine
 
-export DB_USER=admin
-export DB_PWD=adminpass
-export DB_SERVER=localhost
-export DB_NAME=team-member-projects
+RUN mkdir -p /usr/app
+COPY app/* /usr/app/
 
-gradle build
+WORKDIR /usr/app
+EXPOSE 3000
 
-java -jar build/libs/docker-exercises-project-1.0-SNAPSHOT.jar
+RUN npm install
+CMD ["node", "server.js"]
 ```
 
 ------------
 **Exercise 2**
 
-```
-sudo docker run -p 8083:80 \
---name phpmyadmin \
---link mysql:db \
--d phpmyadmin/phpmyadmin
-```
+Create credentials for Gitlab and Docker.
 
+Install the NodeJS plugin and the JSON parser.
+
+Write the following Jenkinsfile
+
+```
+#!/usr/bin/env groovy
+pipeline {
+    agent any
+    tools {
+        nodejs "21.7.1"
+    }
+    stages {
+        stage('increment version') {
+            steps {
+                script {
+                    dir("app") {
+                        sh "npm version minor"
+                        def packageJson = readJSON file: 'package.json'
+                        def version = packageJson.version
+
+                        env.IMAGE_NAME = "$version-$BUILD_NUMBER"
+                    }
+                }
+            }
+        }
+        stage('run tests') {
+            steps {
+               script {
+                    dir("app") {
+                        sh "npm install"
+                        sh "npm run test"
+                    } 
+               }
+            }
+        }
+        stage('Build and Push docker image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker_credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]){
+                    sh "docker build -t fabiocuri/npm-app:${IMAGE_NAME} ."
+                    sh 'echo $PASS | docker login -u $USER --password-stdin'
+                    sh "docker push fabiocuri/npm-app:${IMAGE_NAME}"
+                }
+            }
+        }
+        stage('commit version update') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'gitlab_credentials', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                        sh 'git config --global user.email "jenkins@example.com"'
+                        sh 'git config --global user.name "jenkins"'
+                        sh 'git remote set-url origin https://$USER:$PASS@gitlab.com/fabiocuri/jenkins-exercise.git'
+                        sh 'git add .'
+                        sh 'git commit -m "ci: version bump"'
+                        sh 'git push origin HEAD:master'
+                    }
+                }
+            }
+        }
+    }
+}
+```
 ------------
 **Exercise 3**
 
 ```
-version: '3'
-services:
-  mysql:
-    image: mysql
-    ports:
-      - 3306:3306
-    environment:
-      - MYSQL_ROOT_PASSWORD=rootpass
-      - MYSQL_DATABASE=team-member-projects
-      - MYSQL_USER=admin    
-      - MYSQL_PASSWORD=adminpass
-    volumes:
-    - mysql-data:/var/lib/mysql
-    container_name: mysql
-    command: --default-authentication-plugin=mysql_native_password
-  phpmyadmin:
-    image: phpmyadmin
-    environment:
-      - PMA_HOST=mysql
-    ports:
-      - 8083:80
-    container_name: phpmyadmin
-volumes:
-  mysql-data:
-    driver: local
-```
+ssh root@XXXXXXXXX
 
-and then
+docker login
 
-```
-sudo docker-compose -f docker_compose.yaml up
+docker run -p 3000:3000 fabiocuri/npm-app:1.2.0-8
 ```
 ------------
 **Exercise 4**
 
-```
-FROM openjdk:17.0.2-jdk
-EXPOSE 8080
-RUN mkdir /opt/app
-COPY build/libs/docker-exercises-project-1.0-SNAPSHOT.jar /opt/app
-WORKDIR /opt/app
-CMD ["java", "-jar", "docker-exercises-project-1.0-SNAPSHOT.jar"]
-```
-
-------------
-**Exercise 5**
+The functions were added to https://gitlab.com/fabiocuri/jenkins-shared-library and the new code is here below:
 
 ```
-gradle build
-docker login
-docker build -t fabiocuri/java-app-docker .
-docker tag fabiocuri/java-app-docker:latest fabiocuri/java-app-docker:tagname
-docker push fabiocuri/java-app-docker:tagname
+#!/usr/bin/env groovy
+library identifier: 'jenkins-shared-library@master', retriever: modernSCM(
+        [$class: 'GitSCMSource',
+        remote: 'https://gitlab.com/fabiocuri/jenkins-shared-library.git',
+        credentialsId: 'gitlab_credentials'])
+
+pipeline {
+  agent any
+  tools {
+    nodejs "21.7.1"
+  }
+  stages {
+    stage('increment-version') {
+      steps {
+        incrementVersion()
+      }
+    }
+    stage('run-test') {
+      steps {
+        runTest()
+      }
+    }
+    stage('build-push-docker') {
+      steps {
+        buildPushDocker "fabiocuri/npm-app"
+      }
+    }
+    stage('commit version update') {
+      steps {
+        script {
+          commitGit "gitlab.com/fabiocuri/jenkins-exercise.git"
+        }
+      }
+    }
+  }
+}
 ```
-
-------------
-**Exercise 6**
-
-```
-version: '3'
-services:
-  my-java-app:
-    image: java-mysql-app:1.0 # specify the full image name with repository name
-    environment:
-      - DB_USER=${DB_USER}
-      - DB_PWD=${DB_PWD}
-      - DB_SERVER=${DB_SERVER}
-      - DB_NAME=${DB_NAME}
-    ports:
-    - 8080:8080
-    container_name: my-java-app
-    depends_on:
-      - mysql
-  mysql:
-    image: mysql
-    ports:
-      - 3306:3306
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${DB_NAME}
-      - MYSQL_USER=${DB_USER}
-      - MYSQL_PASSWORD=${DB_PWD}
-    volumes:
-    - mysql-data:/var/lib/mysql
-    container_name: mysql
-    command: --default-authentication-plugin=mysql_native_password
-  phpmyadmin:
-    image: phpmyadmin
-    ports:
-      - 8083:80
-    environment:
-      - PMA_HOST=${PMA_HOST}
-      - PMA_PORT=${PMA_PORT}
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-    container_name: phpmyadmin
-    depends_on:
-      - mysql
-volumes:
-  mysql-data:
-    driver: local
-```
-
-And then run
-
-```
-export DB_USER=admin
-export DB_PWD=adminpass
-export DB_SERVER=mysql
-export DB_NAME=team-member-projects
-
-export MYSQL_ROOT_PASSWORD=rootpass
-
-export PMA_HOST=mysql
-export PMA_PORT=3306
-
-docker-compose -f docker-compose-with-app.yaml up    
-```
-
-------------
-**Exercise 7**
-
-Manually add the /etc/docker/daemon.json file and content.
-Changed the HOST value in the HTML.
-
-```
-sudo service docker restart
-
-gradle build
-docker login
-docker build -t fabiocuri/java-app-docker .
-docker tag fabiocuri/java-app-docker:latest fabiocuri/java-app-docker:tagname
-docker push fabiocuri/java-app-docker:tagname
-
-scp docker_compose.yaml {server-user}:{server-ip}:/home/{server-user}
-
-```
-
-And follow the same steps as the last exercise.
-
-------------
-**Exercise 8**
-
-Manual configuration of firewall.
