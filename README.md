@@ -68,7 +68,7 @@ kind: ConfigMap
 metadata:
   name: db-config
 data:
-  db_server: my-mysql-primary.default
+  DB_SERVER: my-mysql-primary.default
 ```
 
 Create the app java-app.yaml:
@@ -142,25 +142,114 @@ kubectl apply -f java-app.yaml
 
 **Exercise 4**
 
+Create php-myadmin.yaml:
+
 ```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: phpmyadmin
+  labels:
+    app: phpmyadmin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: phpmyadmin
+  template:
+    metadata:
+      labels:
+        app: phpmyadmin
+    spec:
+      containers:
+        - name: phpmyadmin
+          image: phpmyadmin/phpmyadmin:5
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          env:
+            - name: PMA_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: db-config
+                  key: DB_SERVER
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: DB_ROOT_PWD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: phpmyadmin
+spec:
+  selector:
+    app: phpmyadmin
+  ports:
+  - protocol: TCP
+    port: 8081
+    targetPort: 80
+```
+
+and run
+
+```
+kubectl apply -f php-myadmin.yaml
 ```
 
 **Exercise 5**
 
 ```
+minikube addons enable ingress
 ```
 
 **Exercise 6**
 
+Create java-app-ingress.yaml:
+
 ```
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: java-app-ingress
+spec:
+  rules:
+  - host: my-java-app.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: java-app
+            port: 
+              number: 8080
+        pathType: Prefix
+        path: /
+  ingressClassName: nginx
+```
+
+and run
+
+```
+kubectl apply -f java-app-ingress.yaml
+minikube tunnel
 ```
 
 **Exercise 7**
 
 ```
+kubectl port-forward svc/phpmyadmin 8081:8081
 ```
 
 **Exercise 8**
 
 ```
+helm create java-app
 ```
+
+Create the manual YAML files with values-override.yaml and run:
+
+```
+helm install my-cool-java-app java-app -f java-app/values-override.yaml --dry-run --debug
+```
+
