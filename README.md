@@ -4,6 +4,6 @@ Author: Fabio Curi
 
 The entire code is simplified here below:
 
-´´´
+```
 s
-´´´
+```
