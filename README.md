@@ -166,6 +166,4 @@ Adapt the JenkinsFile and run the pipeline.
 
 **Exercise 6**
 
-```
-
-```
+Create IAM for autoscaler and then the new autoscaling.
