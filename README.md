@@ -125,20 +125,44 @@ kubectl port-forward svc/phpmyadmin-service 8081:8081
 **Exercise 3**
 
 ```
+kubectl create namespace my-app
+
+kubectl create secret -n my-app docker-registry my-registry-key \
+--docker-server=xxxx \
+--docker-username=xxxx \
+--docker-password=xxxx \
+--docker-email=xxxx
+
+kubectl apply -f db-secret.yaml -n my-app
+kubectl apply -f db-config.yaml -n my-app
+kubectl apply -f java-app.yaml -n my-app
+```
+
+**Exercise 4 and 5**
+
+```
+kubectl create secret -n my-app docker-registry my-ecr-registry-key --docker-server=xxxx --docker-username=xxxx --docker-password=xxxx
+
+ssh -i ./ssh/id_rsa.pub {user}@{public-ip}
+
+sudo docker exec -it xxxx -u 0 bash
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+./aws/install
+
+apt-get update
+apt-get install -y apt-transport-https ca-certificates curl
+curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list
+apt-get update
+apt-get install -y kubectl
+
+apt-get update
+apt-get install -y gettext-base
 
 ```
 
-**Exercise 4**
-
-```
-
-```
-
-**Exercise 5**
-
-```
-
-```
+Adapt the JenkinsFile and run the pipeline.
 
 **Exercise 6**
 
