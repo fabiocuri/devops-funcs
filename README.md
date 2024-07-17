@@ -40,7 +40,7 @@ variable k8s_version {
 }
 
 variable cluster_name {
-  default = "my-test-cluster"
+  default = "devops-cluster"
 }
 
 variable region {
