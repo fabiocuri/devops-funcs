@@ -1,0 +1,78 @@
+- name: Retrieve server IP address
+  hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: Fetch public IP of the EC2 instance
+    amazon.aws.ec2_instance_info:
+      region: "{{ aws_region }}"
+      filters:
+        "tag:Name": "jenkins-server"
+    register: ec2_info
+
+- name: Setup Jenkins Server Environment
+  hosts: "{{ hostvars['localhost']['ec2_info'].instances[0].public_ip_address }}"
+  become: yes
+  tasks:
+  - name: Install Java Runtime
+    yum:
+      name: java-11-amazon-corretto
+      update_cache: yes
+      state: present
+  - name: Add Jenkins Repository
+    get_url:
+      url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
+      dest: /etc/yum.repos.d/jenkins.repo
+  - name: Import Jenkins RPM Key
+    rpm_key:
+      state: present
+      key: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+  - name: Install Jenkins
+    yum:
+      name: jenkins
+      update_cache: yes
+      state: present
+  - name: Install Docker Engine
+    yum:
+      name: docker
+      update_cache: yes
+      state: present
+  - name: Verify nvm Installation
+    stat:
+      path: ~/.nvm
+    register: nvm_check
+  - name: Download nvm Installer
+    get_url:
+      url: https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh
+      dest: ./install_nvm.sh
+    when: not nvm_check.stat.exists
+  - name: Run nvm Installer
+    shell: bash install_nvm.sh
+    when: not nvm_check.stat.exists
+  - name: Install Node.js
+    shell: "source /root/.nvm/nvm.sh && nvm install 8.0.0 && node --version"
+    args:
+      executable: /bin/bash
+    register: node_install_result
+  - debug: msg="{{ node_install_result }}"
+
+
+- name: Initialize Jenkins Service
+  hosts: "{{ hostvars['localhost']['ec2_info'].instances[0].public_ip_address }}"
+  become: yes
+  tasks:
+  - name: Start Jenkins Service
+    service:
+      name: jenkins
+      state: started
+  - name: Pause briefly to ensure Jenkins starts
+    pause:
+      seconds: 10
+  - name: Validate Jenkins Service with netstat
+    command: netstat -plnt
+    register: service_status
+  - debug: msg="{{ service_status }}"
+  - name: Display Jenkins Admin Password
+    slurp:
+      src: /var/lib/jenkins/secrets/initialAdminPassword
+    register: admin_password
+  - debug: msg="{{ admin_password['content'] }}"
