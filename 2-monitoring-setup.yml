@@ -13,7 +13,7 @@
             prometheusSpec:
               serviceMonitorSelector: {}
               podMonitorSelector: {}
-              scrapeInterval: 30s  # Adjust scrape interval as necessary
+              scrapeInterval: 30s
 
     - name: Configure ServiceMonitor for NGINX Ingress Controller
       kubernetes.core.k8s:
@@ -79,5 +79,5 @@
                 - java-app
             podMetricsEndpoints:
               - port: 8081
-                path: /custom-metrics  # Replace if a different path is used
+                path: /custom-metrics
                 interval: 30s
