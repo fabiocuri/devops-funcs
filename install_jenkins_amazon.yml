@@ -1,0 +1,27 @@
+- name: Install Java on Amazon Linux
+  yum:
+    name: java-11-amazon-corretto
+    update_cache: yes
+    state: present
+
+- name: Add Jenkins repository on Amazon Linux
+  get_url:
+    url: "{{ jenkins_repo_url_amazon }}"
+    dest: "{{ jenkins_repo_file_amazon }}"
+
+- name: Import Jenkins repository key on Amazon Linux
+  rpm_key:
+    state: present
+    key: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+
+- name: Install Jenkins on Amazon Linux
+  yum:
+    name: jenkins
+    update_cache: yes
+    state: present
+
+- name: Ensure Jenkins is started on Amazon Linux
+  service:
+    name: jenkins
+    state: started
+    enabled: true
