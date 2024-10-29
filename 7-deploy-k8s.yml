@@ -1,0 +1,60 @@
+- name: Deploy Java and MySQL Application to Kubernetes
+  hosts: localhost
+  tasks:
+    - name: Set K8s context
+      shell: kubectl config use-context my-k8s-cluster
+
+    - name: Create Namespace
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: java-mysql-app
+
+    - name: Deploy MySQL Secret
+      kubernetes.core.k8s:
+        state: present
+        namespace: java-mysql-app
+        definition: "{{ lookup('file', '7-my-sql-secret.yaml') | from_yaml }}"
+
+    - name: Deploy MySQL ConfigMap
+      kubernetes.core.k8s:
+        state: present
+        namespace: java-mysql-app
+        definition: "{{ lookup('file', '7-mysql-configmap.yaml') | from_yaml }}"
+
+    - name: Deploy MySQL
+      kubernetes.core.k8s:
+        state: present
+        namespace: java-mysql-app
+        definition: "{{ lookup('file', '7-my-sql-deployment.yaml') | from_yaml }}"
+
+    - name: Deploy MySQL Service
+      kubernetes.core.k8s:
+        state: present
+        namespace: java-mysql-app
+        definition: "{{ lookup('file', '7-mysql-service.yaml') | from_yaml }}"
+
+    - name: Deploy Java Application
+      kubernetes.core.k8s:
+        state: present
+        namespace: java-mysql-app
+        definition: "{{ lookup('file', '7-java-deployment.yaml') | from_yaml }}"
+
+    - name: Deploy Java Service
+      kubernetes.core.k8s:
+        state: present
+        namespace: java-mysql-app
+        definition: "{{ lookup('file', '7-java-service.yaml') | from_yaml }}"
+
+    - name: Deploy Nginx Ingress Controller using Helm
+      community.kubernetes.helm:
+        name: nginx-ingress
+        chart_ref: ingress-nginx/ingress-nginx
+        release_namespace: ingress-nginx
+        kube_context: my-k8s-cluster
+
+    - name: Deploy Ingress for Java Application
+      kubernetes.core.k8s:
+        state: present
+        namespace: java-mysql-app
+        definition: "{{ lookup('file', '7-java-ingress.yaml') | from_yaml }}"
