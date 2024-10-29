@@ -1,0 +1,21 @@
+- name: Deploy Java Application on Web Server
+  hosts: "{{ hostvars['localhost']['web_instance'].public_ip }}"
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Install Java
+      apt:
+        name: openjdk-11-jdk
+        state: present
+        update_cache: yes
+
+    - name: Copy application JAR file
+      copy:
+        src: /path/to/your_app.jar
+        dest: /home/ubuntu/app.jar
+        mode: 0755
+
+    - name: Start Java application
+      shell: "nohup java -jar /home/ubuntu/app.jar &"
+      args:
+        chdir: /home/ubuntu/
