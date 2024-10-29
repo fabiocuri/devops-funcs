@@ -1,0 +1,27 @@
+- name: Install Java on Ubuntu
+  apt:
+    name: openjdk-11-jdk
+    update_cache: yes
+    state: present
+
+- name: Add Jenkins repository key on Ubuntu
+  apt_key:
+    url: "{{ jenkins_repo_url }}"
+    state: present
+
+- name: Add Jenkins repository on Ubuntu
+  apt_repository:
+    repo: "deb https://pkg.jenkins.io/debian-stable binary/"
+    state: present
+
+- name: Install Jenkins on Ubuntu
+  apt:
+    name: jenkins
+    update_cache: yes
+    state: present
+
+- name: Ensure Jenkins is started on Ubuntu
+  service:
+    name: jenkins
+    state: started
+    enabled: true
