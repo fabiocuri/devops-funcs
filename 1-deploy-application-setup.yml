@@ -1,4 +1,3 @@
-# deploy-application-setup.yml
 - name: Deploy Application and Configure Setup in Kubernetes
   hosts: localhost
   tasks:
