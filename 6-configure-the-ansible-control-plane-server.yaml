@@ -1,0 +1,20 @@
+- name: Configure Ansible Control Plane
+  hosts: "{{ hostvars['localhost']['ansible_control_plane_instance'].public_ip }}"
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Install required packages
+      apt:
+        name: 
+          - python3-pip
+          - ansible
+        update_cache: yes
+        state: present
+
+    - name: Copy Ansible playbooks to control server
+      copy:
+        src: ./playbooks/
+        dest: /home/ubuntu/playbooks/
+        owner: ubuntu
+        group: ubuntu
+        mode: 0755
