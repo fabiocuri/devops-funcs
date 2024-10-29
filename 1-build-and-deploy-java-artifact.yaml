@@ -1,0 +1,82 @@
+- name: Set up Linux user account
+  hosts: web_server
+  gather_facts: True
+  become: True
+  tasks:
+  - name: Add new Linux user
+    user:
+      name: "{{ target_user }}"
+      group: admin
+
+- name: Ensure Java is available
+  hosts: web_server
+  become: True
+  tasks:
+  - name: Refresh apt repository cache
+    apt: 
+      update_cache: yes 
+      force_apt_get: yes 
+      cache_valid_time: 3600
+  - name: Install Java 11 runtime
+    apt: 
+      name: openjdk-11-jre-headless
+
+- name: Application build process
+  hosts: localhost
+  gather_facts: False
+  tasks:
+  - name: Compile jar with Gradle
+    ansible.builtin.command:
+      chdir: "{{ app_directory }}"
+      cmd: gradle clean build
+
+- name: Stop and clean up old application files
+  hosts: web_server
+  become: True
+  become_user: "{{ target_user }}"
+  tasks:
+  - name: Locate jar files
+    find: 
+      paths: "/home/{{ target_user }}"
+      patterns: "*.jar"
+      file_type: file
+    register: jar_files
+  - debug: msg="{{ jar_files }}"
+
+  - name: Capture Java process ID
+    ignore_errors: yes
+    shell: "ps -ef | grep java | awk '{print $2}'"
+    register: java_pids
+    when: jar_files.files != []
+  - debug: msg="{{ java_pids }}"
+
+  - name: Terminate active Java process
+    ignore_errors: yes
+    shell: "kill {{ java_pids.stdout_lines[0] }}"
+    when: java_pids.stdout_lines | length > 2
+
+  - name: Delete old jar file
+    shell: rm {{ jar_files.files[0].path }}
+    when: jar_files.files != []
+
+- name: Deploy new Java application
+  hosts: web_server
+  become: True
+  become_user: "{{ target_user }}"
+  tasks:
+  - name: Transfer jar to server
+    copy:
+      src: "{{ app_directory }}/build/libs/{{ application_jar }}" 
+      dest: "/home/{{ target_user }}"
+  - name: Launch the application
+    command: 
+      chdir: "/home/{{ target_user }}"
+      cmd: java -jar {{ application_jar }} &
+    async: 1000
+    poll: 0
+    register: start_result
+  - debug: msg="{{ start_result }}"  
+  - name: Confirm application is running
+    shell: ps aux | grep java
+    register: app_check
+  - debug: msg="{{ app_check.stdout_lines }}"
