@@ -1,0 +1,83 @@
+- name: Deploy Monitoring Stack with Prometheus Operator
+  hosts: localhost
+  tasks:
+    - name: Deploy Prometheus Operator using Helm
+      community.kubernetes.helm:
+        name: prometheus
+        chart_ref: prometheus-community/kube-prometheus-stack
+        release_namespace: monitoring
+        kube_context: my-k8s-cluster
+        state: present
+        values:
+          prometheus:
+            prometheusSpec:
+              serviceMonitorSelector: {}
+              podMonitorSelector: {}
+              scrapeInterval: 30s  # Adjust scrape interval as necessary
+
+    - name: Configure ServiceMonitor for NGINX Ingress Controller
+      kubernetes.core.k8s:
+        state: present
+        namespace: monitoring
+        definition: |
+          apiVersion: monitoring.coreos.com/v1
+          kind: ServiceMonitor
+          metadata:
+            name: nginx-ingress-sm
+            labels:
+              app: nginx-ingress
+          spec:
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: ingress-nginx
+            namespaceSelector:
+              matchNames:
+                - ingress-nginx
+            endpoints:
+              - port: metrics
+                interval: 30s
+
+    - name: Configure ServiceMonitor for MySQL
+      kubernetes.core.k8s:
+        state: present
+        namespace: monitoring
+        definition: |
+          apiVersion: monitoring.coreos.com/v1
+          kind: ServiceMonitor
+          metadata:
+            name: mysql-sm
+            labels:
+              app: mysql
+          spec:
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: mysql
+            namespaceSelector:
+              matchNames:
+                - java-app
+            endpoints:
+              - port: metrics
+                interval: 30s
+
+    - name: Configure PodMonitor for Java Application
+      kubernetes.core.k8s:
+        state: present
+        namespace: monitoring
+        definition: |
+          apiVersion: monitoring.coreos.com/v1
+          kind: PodMonitor
+          metadata:
+            name: java-app-pm
+            labels:
+              app: java-maven-app
+          spec:
+            selector:
+              matchLabels:
+                app: java-maven-app
+            namespaceSelector:
+              matchNames:
+                - java-app
+            podMetricsEndpoints:
+              - port: 8081
+                path: /custom-metrics  # Replace if a different path is used
+                interval: 30s
