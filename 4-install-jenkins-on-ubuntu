@@ -1,0 +1,21 @@
+- name: Setup Jenkins on Multiple Platforms
+  hosts: "{{ target_host | default('localhost') }}"
+  gather_facts: true
+  become: true
+
+  vars:
+    jenkins_repo_url: "https://pkg.jenkins.io/debian-stable/jenkins.io.key"
+    jenkins_repo_file_ubuntu: "/etc/apt/sources.list.d/jenkins.list"
+    jenkins_repo_url_amazon: "https://pkg.jenkins.io/redhat-stable/jenkins.repo"
+    jenkins_repo_file_amazon: "/etc/yum.repos.d/jenkins.repo"
+
+  tasks:
+  - name: Include tasks for Ubuntu or Amazon Linux
+    block:
+      - name: Ubuntu-specific tasks
+        include_tasks: install_jenkins_ubuntu.yml
+        when: ansible_facts['os_family'] == "Debian"
+
+      - name: Amazon Linux-specific tasks
+        include_tasks: install_jenkins_amazon.yml
+        when: ansible_facts['os_family'] == "RedHat"
