@@ -32,7 +32,6 @@ for iam_user in iam_users["Users"]:
     if last_active_user["PasswordLastUsed"] < iam_user["PasswordLastUsed"]:
         last_active_user = iam_user
 
-print("Last active user info:")
 print(last_active_user["UserId"], last_active_user["UserName"], last_active_user["PasswordLastUsed"])
 ```
 
@@ -130,7 +129,7 @@ if not port_open:
         IpProtocol='tcp'
     )
 
-# Scheduled function to check nginx application status and reload if not OK 5x in a row
+
 app_not_accessible_count = 0
 
 def restart_container():
@@ -141,7 +140,6 @@ def restart_container():
     stdin, stdout, stderr = ssh.exec_command('docker start nginx')
     print(stdout.readlines())
     ssh.close()
-    # reset the count
     global app_not_accessible_count
     app_not_accessible_count = 0
     
