@@ -3,7 +3,7 @@
   gather_facts: true
   become: true
   roles:
-    - mysql_role  # This role should handle MySQL installation and configuration
+    - mysql_role
   vars:
     mysql_root_password: "xxxxx"
     mysql_user: "xxxx"
