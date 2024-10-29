@@ -1,0 +1,19 @@
+- name: Provision Ansible Control Plane
+  hosts: localhost
+  gather_facts: False
+  tasks:
+    - name: Launch Ansible Control Plane EC2 Instance
+      amazon.aws.ec2:
+        key_name: "{{ aws_key_name }}"
+        instance_type: t2.micro
+        image_id: "{{ aws_ami_id }}"
+        wait: yes
+        region: "{{ aws_region }}"
+        vpc_subnet_id: "{{ ansible_server_subnet }}"
+        assign_public_ip: yes
+      register: ansible_control_plane_instance
+
+    - name: Save Ansible server details
+      copy:
+        content: "{{ ansible_control_plane_instance.instances[0] }}"
+        dest: ansible_control_plane_info.json
