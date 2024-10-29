@@ -1,0 +1,37 @@
+- name: Install Jenkins as a Docker Container
+  hosts: "{{ target_host | default('localhost') }}"
+  gather_facts: true
+  become: true
+
+  tasks:
+  - name: Install Docker if not present
+    package:
+      name: docker
+      state: present
+    when: ansible_facts['os_family'] in ["Debian", "RedHat"]
+
+  - name: Start Docker service
+    service:
+      name: docker
+      state: started
+      enabled: true
+
+  - name: Pull Jenkins Docker image
+    docker_image:
+      name: jenkins/jenkins
+      tag: lts
+      source: pull
+
+  - name: Create Jenkins container
+    docker_container:
+      name: jenkins
+      image: jenkins/jenkins:lts
+      state: started
+      restart_policy: always
+      ports:
+        - "8080:8080"
+        - "50000:50000"
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - /usr/local/bin/docker:/usr/bin/docker
+        - jenkins_home:/var/jenkins_home
