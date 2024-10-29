@@ -1,0 +1,123 @@
+# deploy-application-setup.yml
+- name: Deploy Application and Configure Setup in Kubernetes
+  hosts: localhost
+  tasks:
+    - name: Set Kubernetes context
+      shell: kubectl config use-context my-k8s-cluster
+
+    - name: Create Namespace for Application
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: java-app
+        state: present
+
+    - name: Deploy MySQL with Helm Chart
+      community.kubernetes.helm:
+        name: mysql
+        chart_ref: bitnami/mysql
+        release_namespace: java-app
+        kube_context: my-k8s-cluster
+        values:
+          architecture: replication
+          auth:
+            rootPassword: "{{ lookup('file', 'mysql-root-password.txt') | trim }}"
+            username: "{{ lookup('file', 'mysql-username.txt') | trim }}"
+            password: "{{ lookup('file', 'mysql-password.txt') | trim }}"
+            database: app_db
+          primary:
+            persistence:
+              enabled: true
+          secondary:
+            replicas: 2
+            persistence:
+              enabled: true
+        state: present
+
+    - name: Deploy Java Application
+      kubernetes.core.k8s:
+        state: present
+        namespace: java-app
+        definition: |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: java-maven-app
+          spec:
+            replicas: 3
+            selector:
+              matchLabels:
+                app: java-maven-app
+            template:
+              metadata:
+                labels:
+                  app: java-maven-app
+              spec:
+                containers:
+                  - name: java-app
+                    image: "your-docker-repo/java-maven-app:latest"
+                    ports:
+                      - containerPort: 8080
+                    env:
+                      - name: DB_HOST
+                        value: mysql.java-app.svc.cluster.local
+                      - name: DB_USER
+                        valueFrom:
+                          secretKeyRef:
+                            name: mysql-credentials
+                            key: username
+                      - name: DB_PASSWORD
+                        valueFrom:
+                          secretKeyRef:
+                            name: mysql-credentials
+                            key: password
+
+    - name: Deploy Service for Java Application
+      kubernetes.core.k8s:
+        state: present
+        namespace: java-app
+        definition: |
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: java-maven-app
+          spec:
+            selector:
+              app: java-maven-app
+            ports:
+              - protocol: TCP
+                port: 8080
+                targetPort: 8080
+            type: ClusterIP
+
+    - name: Deploy NGINX Ingress Controller with Helm Chart
+      community.kubernetes.helm:
+        name: ingress-nginx
+        chart_ref: ingress-nginx/ingress-nginx
+        release_namespace: ingress-nginx
+        kube_context: my-k8s-cluster
+        state: present
+
+    - name: Configure Ingress for Java Application
+      kubernetes.core.k8s:
+        state: present
+        namespace: java-app
+        definition: |
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: java-app-ingress
+            annotations:
+              nginx.ingress.kubernetes.io/rewrite-target: /
+          spec:
+            rules:
+              - host: java-app.example.com
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: java-maven-app
+                          port:
+                            number: 8080
