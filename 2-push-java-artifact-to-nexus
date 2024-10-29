@@ -1,0 +1,22 @@
+- name: Upload to Nexus Repository
+  hosts: localhost
+  gather_facts: False
+  tasks:
+  - name: Upload jar artifact to Nexus
+    no_log: True
+
+    uri:
+    
+      url: "{{ nexus_endpoint }}/repository/maven-snapshots/com/your/{{ artifact_name }}/{{ artifact_version }}/{{ artifact_name }}-{{ artifact_version }}.jar"
+      
+      method: PUT
+      src: "{{ artifact_jar_path }}"
+      user: "{{ nexus_user }}"
+      password: "{{ nexus_token }}"
+      force_basic_auth: yes
+      
+
+      body_format: json
+      
+      status_code:
+        - 201
