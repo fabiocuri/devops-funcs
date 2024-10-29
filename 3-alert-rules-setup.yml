@@ -48,7 +48,7 @@
               - name: java-app-alerts
                 rules:
                   - alert: TooManyRequests
-                    expr: rate(http_requests_total{app="java-maven-app"}[5m]) > 100  # Adjust threshold as necessary
+                    expr: rate(http_requests_total{app="java-maven-app"}[5m]) > 100
                     for: 5m
                     labels:
                       severity: warning
