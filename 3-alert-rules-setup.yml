@@ -1,0 +1,68 @@
+- name: Configure Alert Rules for Applications
+  hosts: localhost
+  tasks:
+    - name: Create Alerting Rules for Prometheus
+      kubernetes.core.k8s:
+        state: present
+        namespace: monitoring
+        definition: |
+          apiVersion: monitoring.coreos.com/v1
+          kind: PrometheusRule
+          metadata:
+            name: application-alerts
+            labels:
+              app: monitoring
+          spec:
+            groups:
+              - name: nginx-ingress-alerts
+                rules:
+                  - alert: High4xxRequests
+                    expr: sum(rate(nginx_ingress_controller_requests{status=~"4.."}[5m])) / sum(rate(nginx_ingress_controller_requests[5m])) > 0.05
+                    for: 5m
+                    labels:
+                      severity: warning
+                    annotations:
+                      summary: "More than 5% of HTTP requests are 4xx"
+                      description: "More than 5% of HTTP requests have status 4xx for the last 5 minutes."
+
+              - name: mysql-alerts
+                rules:
+                  - alert: MysqlInstancesDown
+                    expr: up{job="mysql"} == 0
+                    for: 2m
+                    labels:
+                      severity: critical
+                    annotations:
+                      summary: "All MySQL instances are down"
+                      description: "No MySQL instances are available."
+
+                  - alert: MysqlTooManyConnections
+                    expr: mysql_global_status_connections - mysql_global_status_max_connections > 0
+                    for: 5m
+                    labels:
+                      severity: warning
+                    annotations:
+                      summary: "Too many MySQL connections"
+                      description: "MySQL has too many connections over the limit."
+
+              - name: java-app-alerts
+                rules:
+                  - alert: TooManyRequests
+                    expr: rate(http_requests_total{app="java-maven-app"}[5m]) > 100  # Adjust threshold as necessary
+                    for: 5m
+                    labels:
+                      severity: warning
+                    annotations:
+                      summary: "Too many requests to the Java application"
+                      description: "Java application is receiving too many requests."
+
+              - name: statefulset-alerts
+                rules:
+                  - alert: StatefulSetReplicasMismatch
+                    expr: (kube_statefulset_status_replicas{app="mysql"} != kube_statefulset_replicas{app="mysql"})
+                    for: 5m
+                    labels:
+                      severity: critical
+                    annotations:
+                      summary: "StatefulSet replicas mismatch"
+                      description: "The number of replicas in the StatefulSet does not match the desired state."
