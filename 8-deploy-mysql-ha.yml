@@ -1,0 +1,53 @@
+- name: Deploy High-Availability MySQL in Kubernetes
+  hosts: localhost
+  tasks:
+    - name: Set K8s context
+      shell: kubectl config use-context my-k8s-cluster
+
+    - name: Create Namespace if not exists
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: java-mysql-app
+        state: present
+
+    - name: Deploy MySQL Secrets (if not already deployed)
+      kubernetes.core.k8s:
+        state: present
+        namespace: java-mysql-app
+        definition: "{{ lookup('file', 'mysql-secret.yaml') | from_yaml }}"
+
+    - name: Deploy MySQL ConfigMap (if not already deployed)
+      kubernetes.core.k8s:
+        state: present
+        namespace: java-mysql-app
+        definition: "{{ lookup('file', 'mysql-configmap.yaml') | from_yaml }}"
+
+    - name: Remove single-instance MySQL deployment
+      kubernetes.core.k8s:
+        state: absent
+        namespace: java-mysql-app
+        name: mysql
+        kind: Deployment
+
+    - name: Deploy MySQL with Helm for high availability
+      community.kubernetes.helm:
+        name: mysql
+        chart_ref: bitnami/mysql
+        release_namespace: java-mysql-app
+        kube_context: my-k8s-cluster
+        values:
+          architecture: replication
+          auth:
+            rootPassword: "{{ lookup('file', 'mysql-root-password.txt') | trim }}"
+            username: "{{ lookup('file', 'mysql-username.txt') | trim }}"
+            password: "{{ lookup('file', 'mysql-password.txt') | trim }}"
+            database: app_db
+          primary:
+            persistence:
+              enabled: true
+          secondary:
+            replicas: 3
+            persistence:
+              enabled: true
+        state: present
