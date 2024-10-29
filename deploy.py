@@ -8,7 +8,7 @@ ssh_private_key = os.environ['SSH_KEY_FILE']
 docker_registry = os.environ['ECR_REGISTRY']
 docker_user = os.environ['DOCKER_USER']
 docker_pwd = os.environ['DOCKER_PWD']
-docker_image = os.environ['DOCKER_IMAGE'] # version is selected by user in Jenkins 
+docker_image = os.environ['DOCKER_IMAGE']
 container_port = os.environ['CONTAINER_PORT']
 host_port = os.environ['HOST_PORT']
 
