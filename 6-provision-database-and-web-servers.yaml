@@ -1,0 +1,30 @@
+- name: Provision Database and Web Servers
+  hosts: localhost
+  gather_facts: False
+  tasks:
+    - name: Launch Database Server (private subnet)
+      amazon.aws.ec2:
+        key_name: "{{ aws_key_name }}"
+        instance_type: t2.micro
+        image_id: "{{ aws_ami_id }}"
+        region: "{{ aws_region }}"
+        vpc_subnet_id: "{{ private_db_subnet }}"
+        assign_public_ip: no
+        wait: yes
+      register: db_instance
+
+    - name: Launch Web Server (public subnet)
+      amazon.aws.ec2:
+        key_name: "{{ aws_key_name }}"
+        instance_type: t2.micro
+        image_id: "{{ aws_ami_id }}"
+        region: "{{ aws_region }}"
+        vpc_subnet_id: "{{ public_web_subnet }}"
+        assign_public_ip: yes
+        wait: yes
+      register: web_instance
+
+    - name: Save server details
+      copy:
+        content: "{{ db_instance.instances[0] }}\n{{ web_instance.instances[0] }}"
+        dest: servers_info.json
