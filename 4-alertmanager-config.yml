@@ -1,0 +1,52 @@
+- name: Configure Alertmanager for Notifications
+  hosts: localhost
+  tasks:
+    - name: Create Alertmanager Configuration
+      copy:
+        dest: /etc/alertmanager/config.yml
+        content: |
+          global:
+            resolve_timeout: 5m
+
+          route:
+            group_by: ['alertname']
+            group_wait: 30s
+            group_interval: 5m
+            repeat_interval: 3h
+            routes:
+              - match:
+                  alertname: High4xxRequests
+                receiver: slack-team
+
+              - match:
+                  alertname: MysqlInstancesDown
+                receiver: slack-team
+
+              - match:
+                  alertname: MysqlTooManyConnections
+                receiver: slack-team
+
+              - match:
+                  alertname: TooManyRequests
+                receiver: slack-team
+
+              - match:
+                  alertname: StatefulSetReplicasMismatch
+                receiver: email-admin
+
+          receivers:
+            - name: slack-team
+              slack_configs:
+                - api_url: 'https://hooks.slack.com/services/xxxx'
+                  channel: '#developer-team'
+                  text: '{{ .CommonAnnotations.summary }}\n{{ .CommonAnnotations.description }}'
+
+            - name: email-admin
+              email_configs:
+                - to: 'debruitsproject@gmail.com'
+                  from: 'alertmanager@example.com'
+                  smarthost: 'smtp.example.com:587'
+                  auth_username: 'alertmanager@example.com'
+                  auth_password: 'your-email-password'
+                  subject: '[Alert] {{ .CommonAnnotations.summary }}'
+                  body: '{{ .CommonAnnotations.description }}'
