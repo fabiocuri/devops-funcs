@@ -1,0 +1,11 @@
+- name: Verify Java Application is Running
+  hosts: localhost
+  tasks:
+    - name: Check Application Status
+      uri:
+        url: "http://{{ hostvars['localhost']['web_instance'].public_ip }}:8080"
+        status_code: 200
+      register: app_check
+      
+    - debug:
+        msg: "Application is running and accessible!" if app_check.status == 200 else "Application failed to start."
