@@ -3,8 +3,8 @@
 pipeline {
     agent any
     environment {
-        ECR_REPO_NAME = 'debruits-app' // SET VALUE
-        EC2_SERVER = 'xxxxxxx' // SET VALUE
+        ECR_REPO_NAME = 'debruits-app'
+        EC2_SERVER = 'xxxxxxx'
         EC2_USER = 'ec2-user'
         SSH_KEY_FILE = credentials('ssh-creds')
         ECR_REGISTRY = 'xxxxx'
